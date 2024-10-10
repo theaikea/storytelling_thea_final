@@ -61,7 +61,7 @@ _scene.add(_ambiLight);
 
 // PointLight setup
 const _pointLight2 = new THREE.PointLight(0xffffff, 500, 30);
-_pointLight2.position.set(110, 0.4, -223);
+_pointLight2.position.set(110, 0.4, -240);
 _scene.add(_pointLight2);
 
 const _pointLight = new THREE.PointLight(0xffffff, 20, 100);
@@ -94,6 +94,7 @@ const buildings = [
     { position: { x: 69, y: 6, z: -180 }, rotation: { x: 0, y: dtr(270), z: 0 } },
     { position: { x: 69, y: 6, z: -240 }, rotation: { x: 0, y: dtr(90), z: 0 } },
     { position: { x: 150, y: 6, z: -240 }, rotation: { x: 0, y: dtr(270), z: 0 } },
+    { position: { x: 30, y: 6, z: -160 }, rotation: { x: 0, y: dtr(0), z: 0 } },
     
 ];
 
@@ -133,7 +134,7 @@ const loader2 = new GLTFLoader().setPath('/3dmodels/');
 loader2.load('Patty.glb', function(gltf) {
     character2 = gltf.scene;
     character2.scale.set(2.4, 2.4, 2.4);
-    character2.position.set(110, 0.4, -223);
+    character2.position.set(110, 0.4, -240);
 
     
     character2.rotation.y = dtr(180);
@@ -159,7 +160,7 @@ loader2.load('Patty.glb', function(gltf) {
 const collisionBoxGeom = new THREE.BoxGeometry(20, 10, 20); // Adjust the size as needed
 const collisionBoxMat = new THREE.MeshBasicMaterial({ color: 0xff0000, visible: false }); // Set visible to false
 const collisionBox = new THREE.Mesh(collisionBoxGeom, collisionBoxMat);
-collisionBox.position.set(110, 0.4, -223); // Position it wherever needed
+collisionBox.position.set(110, 0.4, -240); // Position it wherever needed
 _scene.add(collisionBox);
 
 // Pre-calculate the collision box's bounding box
@@ -169,13 +170,19 @@ const collisionBoxBoundingBox = new THREE.Box3().setFromObject(collisionBox);
 const sound = new Howl({
     src: ['sounds/noname.mp3'],
     loop: true,
-    volume: 0.2
+    volume: 0.15
 });
 
 const newSong = new Howl({
     src: ['sounds/Opstigning.mp3'],
     loop: true,
     volume: 0.5
+});
+
+const footsound = new Howl({
+    src: ['sounds/footsteps.mp3'],
+    loop: true,
+    volume: 0.035
 });
 
 // Play the first song
@@ -190,13 +197,13 @@ class InvisiblePlane {
         this.rotation = rotation;
         this.sound = new Howl({
             src: [soundSrc],
-            volume: 0.8,
+            volume: 0.5,
             loop: false,
         });
 
         // Create the plane
         const planeGeom = new THREE.PlaneGeometry(size.x, size.y);
-        const planeMat = new THREE.MeshBasicMaterial({ visible: true }); // Invisible material
+        const planeMat = new THREE.MeshBasicMaterial({ visible: false }); // Invisible material
         this.plane = new THREE.Mesh(planeGeom, planeMat);
 
         // Set position, rotation
@@ -226,10 +233,11 @@ class InvisiblePlane {
 
 // Instantiate planes with different positions, sizes, rotations, and sounds
 const planes = [
-    new InvisiblePlane({ x: 0, y: 0, z: -10 }, { x: 100, y: 100 }, { x: 0, y: dtr(180), z: 0 }, 'sounds/annika1.mp3'),
-    new InvisiblePlane({ x: 0, y: 0, z: -60 }, { x: 100, y: 100 }, { x: 0, y: dtr(180), z: 0 }, 'sounds/annika1.mp3'),
-    new InvisiblePlane({ x: 150, y: 0, z: -100 }, { x: 100, y: 100 }, { x: 0, y: dtr(180), z: 0 }, 'sounds/annika1.mp3'),
-    new InvisiblePlane({ x: 110, y: 0, z: -190 }, { x: 100, y: 100 }, { x: 0, y: dtr(180), z: 0 }, 'sounds/annika1.mp3'),
+    new InvisiblePlane({ x: 0, y: 0, z: -20 }, { x: 100, y: 100 }, { x: 0, y: dtr(180), z: 0 }, 'sounds/1.mp3'),
+    new InvisiblePlane({ x: 0, y: 0, z: -65 }, { x: 100, y: 100 }, { x: 0, y: dtr(180), z: 0 }, 'sounds/2.mp3'),
+    new InvisiblePlane({ x: 110, y: 0, z: -100 }, { x: 100, y: 100 }, { x: 0, y: dtr(180), z: 0 }, 'sounds/3.mp3'),
+    new InvisiblePlane({ x: 110, y: 0, z: -150 }, { x: 100, y: 100 }, { x: 0, y: dtr(180), z: 0 }, 'sounds/4.mp3'),
+    new InvisiblePlane({ x: 110, y: 0, z: -230 }, { x: 100, y: 100 }, { x: 0, y: dtr(180), z: 0 }, 'sounds/5.mp3'),
 ];
 
 
@@ -247,7 +255,7 @@ let _walkSpeedX = 0, _walkSpeedZ = 0;
 function animate() {
     const delta = _clock.getDelta();
 
-    if (_mixer) _mixer.update(delta * (_walk ? 0.35 : 0.5));
+    if (_mixer) _mixer.update(delta * (_walk ? 0.35 : 0.4));
     if (mixer2) mixer2.update(delta * 0.4);
 
 
@@ -265,8 +273,8 @@ function animate() {
             _3dmodel.rotation.y += dtr(_walkSpeedX);
         }
 
-        _3dmodel.position.z -= Math.cos(_3dmodel.rotation.y) * _walkSpeedZ * 0.12;
-        _3dmodel.position.x -= Math.sin(_3dmodel.rotation.y) * _walkSpeedZ * 0.12;
+        _3dmodel.position.z -= Math.cos(_3dmodel.rotation.y) * _walkSpeedZ * 0.09;
+        _3dmodel.position.x -= Math.sin(_3dmodel.rotation.y) * _walkSpeedZ * 0.09;
 
         // Update bounding box of the 3D model
         const _3dmodelBox = new THREE.Box3().setFromObject(_3dmodel);
@@ -298,7 +306,7 @@ function animate() {
     }
 
     // Update the light's position to follow the camera
-    _pointLight.position.set(_camera.position.x + 5, 15, _camera.position.z -15);
+    _pointLight.position.set(_camera.position.x + 3, 15, _camera.position.z -10);
 
     // Check for collisions between _3dmodel and character2 or invisible collision box
     const _3dmodelBox = new THREE.Box3().setFromObject(_3dmodel);
@@ -343,6 +351,9 @@ function keydown(e) {
         _walk = true;
         _walkSpeedZ = Math.max(_walkSpeedZ, 0.1);
         switchToAction(_walkAction);
+        if (!footsound.playing()) {
+            footsound.play();
+        }
     } else if (e.key === "ArrowLeft") {
         _walkSpeedX = 0.5;
         _walk = true;
@@ -360,6 +371,7 @@ function keyup(e) {
         _walkSpeedX = 0;
         _walk = false;
         switchToAction(_idleAction);
+        footsound.stop(); 
     }
 }
 
