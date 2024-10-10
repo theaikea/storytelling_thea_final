@@ -1,4 +1,3 @@
-import './style.css'
 import * as THREE from 'three';
 import { OrbitControls } from '/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
@@ -126,11 +125,6 @@ loader.load('annika.glb', function(gltf) {
     });
 
     _scene.add(_3dmodel);
-
-    // Start the animation loop only after the model is loaded
-    if (character2) {
-        gsap.ticker.add(animate);
-    }
 });
 
 let character2, mixer2;
@@ -158,11 +152,6 @@ loader2.load('Patty.glb', function(gltf) {
     });
 
     _scene.add(character2);
-
-     // Start the animation loop only after both models are loaded
-     if (_3dmodel) {
-        gsap.ticker.add(animate);
-    }
 
 });
 
@@ -255,6 +244,96 @@ const _clock = new THREE.Clock();
 let _walk = false;
 let _walkSpeedX = 0, _walkSpeedZ = 0;
 
+function animate() {
+    const delta = _clock.getDelta();
+
+    if (_mixer) _mixer.update(delta * (_walk ? 0.35 : 0.5));
+    if (mixer2) mixer2.update(delta * 0.4);
+
+
+    // Update the collision box's bounding box
+    collisionBoxBoundingBox.setFromObject(collisionBox);
+
+    // Update 3d model movement
+    if (_3dmodel) {
+        if (_walk) {
+            _walkSpeedZ *= 1.05;
+            if (_walkSpeedZ > 1) _walkSpeedZ = 1;
+        }
+
+        if (_walkSpeedX !== 0) {
+            _3dmodel.rotation.y += dtr(_walkSpeedX);
+        }
+
+        _3dmodel.position.z -= Math.cos(_3dmodel.rotation.y) * _walkSpeedZ * 0.12;
+        _3dmodel.position.x -= Math.sin(_3dmodel.rotation.y) * _walkSpeedZ * 0.12;
+
+        // Update bounding box of the 3D model
+        const _3dmodelBox = new THREE.Box3().setFromObject(_3dmodel);
+
+        // Check for collisions with each plane
+        planes.forEach(plane => {
+            plane.updateBoundingBox();
+            plane.checkCollision(_3dmodelBox);
+        });
+
+        // Camera smoothly follows the model
+        const targetCamX = _3dmodel.position.x + Math.sin(_3dmodel.rotation.y) * 8;
+        const targetCamY = _3dmodel.position.y + 10 + _cameraTilt;
+        const targetCamZ = _3dmodel.position.z + Math.cos(_3dmodel.rotation.y) * 8;
+
+        gsap.to(_camera.position, {
+            x: targetCamX,
+            y: targetCamY,
+            z: targetCamZ,
+            duration: 0.5,
+            ease: "power1.out"
+        });
+
+        _camera.lookAt(
+            _3dmodel.position.x, 
+            _3dmodel.position.y + 12.5 + _cameraTilt,
+            _3dmodel.position.z
+        );
+    }
+
+    // Update the light's position to follow the camera
+    _pointLight.position.set(_camera.position.x + 5, 15, _camera.position.z -15);
+
+    // Check for collisions between _3dmodel and character2 or invisible collision box
+    const _3dmodelBox = new THREE.Box3().setFromObject(_3dmodel);
+
+
+    // Collision with invisible box
+    if (_3dmodelBox.intersectsBox(collisionBoxBoundingBox)) {
+        console.log("Collision detected with invisible box!");
+
+        if (sound.playing()) {
+            sound.stop();
+        }
+
+        if (!newSong.playing()) {
+            newSong.play();
+        }
+
+        gsap.to(_ambiLight, { intensity: 0.1, duration: 10 });
+        gsap.to(_pointLight.color, { duration: 10, r: 1, g: 0, b: 0.6 });
+
+
+        bloomPass.enabled = true;
+        luminosityPass.enabled = false;
+
+        _scene.remove(_pointLight2);
+
+        
+    }
+
+    // Render the scene with post-processing effects
+    composer.render();
+}
+
+gsap.ticker.add(animate);
+
 // Key press event listeners for walk/rotate
 window.addEventListener("keydown", keydown);
 window.addEventListener("keyup", keyup);
@@ -291,76 +370,6 @@ function switchToAction(newAction) {
         _currentAction = newAction;
     }
 }
-
-function animate() {
-    const delta = _clock.getDelta();
-
-    // Only update the mixer if the model has been loaded
-    if (_mixer) _mixer.update(delta * (_walk ? 0.35 : 0.5));
-    if (mixer2) mixer2.update(delta * 0.4);
-
-    // Update the collision box's bounding box
-    collisionBoxBoundingBox.setFromObject(collisionBox);
-
-    // Ensure _3dmodel is fully loaded before trying to compute its bounding box
-    if (_3dmodel) {
-        if (_3dmodel.children.length > 0) { // Check that it has children (meshes)
-
-            // Update 3D model movement and bounding box
-            if (_walk) {
-                _walkSpeedZ *= 1.05;
-                if (_walkSpeedZ > 1) _walkSpeedZ = 1;
-            }
-
-            if (_walkSpeedX !== 0) {
-                _3dmodel.rotation.y += dtr(_walkSpeedX);
-            }
-
-            _3dmodel.position.z -= Math.cos(_3dmodel.rotation.y) * _walkSpeedZ * 0.12;
-            _3dmodel.position.x -= Math.sin(_3dmodel.rotation.y) * _walkSpeedZ * 0.12;
-
-            // Safely compute the bounding box
-            const _3dmodelBox = new THREE.Box3().setFromObject(_3dmodel);
-
-            // Check for collisions with each plane
-            planes.forEach(plane => {
-                plane.updateBoundingBox();
-                plane.checkCollision(_3dmodelBox);
-            });
-
-            // Camera smoothly follows the model
-            const targetCamX = _3dmodel.position.x + Math.sin(_3dmodel.rotation.y) * 8;
-            const targetCamY = _3dmodel.position.y + 10 + _cameraTilt;
-            const targetCamZ = _3dmodel.position.z + Math.cos(_3dmodel.rotation.y) * 8;
-
-            gsap.to(_camera.position, {
-                x: targetCamX,
-                y: targetCamY,
-                z: targetCamZ,
-                duration: 0.5,
-                ease: "power1.out"
-            });
-
-            _camera.lookAt(
-                _3dmodel.position.x, 
-                _3dmodel.position.y + 12.5 + _cameraTilt,
-                _3dmodel.position.z
-            );
-        } 
-           
-     
-    }
-
-    // Update the light's position to follow the camera
-    _pointLight.position.set(_camera.position.x + 7, 15, _camera.position.z - 10);
-
-    // Render the scene with post-processing effects
-    composer.render();
-}
-
-gsap.ticker.add(animate);
-
-
 
 function dtr(deg) {
     return deg * (Math.PI / 180);
